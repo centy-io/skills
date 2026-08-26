@@ -23,8 +23,9 @@ Use for a local checkout of `centy-io/centy-daemon`, its Rust daemon, and its su
 
 - Canonical repository: `https://github.com/centy-io/centy-daemon.git`.
 - The root workspace includes `daemon/` and `xtask/`; the executable crate is `daemon`, producing `centy-daemon`.
-- The checkout has required `installer` and `proto` Git submodules. Initialize recursively after cloning or resetting.
+- The checkout has required `installer` and `proto` Git submodules. The optional/consumer-facing `web` submodule may itself own `proto`; always initialize with `git submodule update --init --recursive` after cloning, rebasing, or switching the pinned web revision.
 - Centy stores project data in a `.centy/` directory as Markdown records with YAML frontmatter. The daemon serves native gRPC and gRPC-Web; its default listener is `127.0.0.1:50051`.
+- To launch the bundled web app during local integration, use `CENTY_SERVE_WEB=1 ./target/release/centy-daemon`. It starts the `web` submodule's Next dev server on `127.0.0.1:5180`; verify both the gRPC listener and `curl --fail http://127.0.0.1:5180/`, then terminate the daemon and confirm its child web process exits.
 
 ## Safe checkout discovery
 
