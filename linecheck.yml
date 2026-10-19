@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/tupe12334/linecheck/main/schema/linecheck.schema.json
+
+
+rules:
+- pattern: '**/SKILL.md'
+  warn: 80
+  error: 100
+  error_message: Skill files over 100 lines should be split into references/, templates/, or scripts/ so the always-loaded SKILL.md stays focused.
+- pattern: '**/*.md'
+  warn: 200
+  error: 400
+  error_message: Markdown files over 400 lines should be split into focused documents.
+exclude:
+- .git/**
+- .claude/**
