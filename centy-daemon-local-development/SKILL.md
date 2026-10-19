@@ -81,6 +81,12 @@ Each gate below failed a pull request at least once because it was skipped local
 
 Proof: the local clippy run with the CI flags, the full test suite and the changeset check all pass before you push.
 
+
+## Daemon-written files and project config
+
+- The managed `.centy/.gitignore` ignores only files with a `.local.` infix. Users commit `.centy`. Why: any other daemon-written runtime file, such as a log or history file, leaks into their git status. Give every such file the `.local.` infix, and check a fresh project's git status after the daemon runs.
+- Built-in link types must exist inside the daemon. Why: a client that silently writes project config to declare them pollutes committed files and drifts per client. Fix the missing type in the daemon, not in the client.
+
 ## Pitfalls
 
 - A process search can show no running daemon while a source checkout exists. Separate source discovery from runtime state.
