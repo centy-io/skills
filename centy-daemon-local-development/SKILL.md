@@ -1,7 +1,7 @@
 ---
 name: centy-daemon-local-development
 description: "Use when working on a local Centy daemon checkout."
-version: 1.4.0
+version: 1.5.0
 author: Hermes Agent
 license: MIT
 metadata:
@@ -40,16 +40,7 @@ Use for a local checkout of the Centy daemon, its Rust workspace, and its submod
 
 ## Explicit destructive reset
 
-Run only after the user explicitly asks to destroy local changes. Intent, in order:
-
-1. Fetch the remote main branch with pruning, so the target tip is current.
-2. Hard-reset the current branch to that remote tip. Why: this discards tracked changes only.
-3. Remove untracked files and directories. Why: a hard reset leaves untracked files behind, so this step is required for a literal clean tree. It is destructive.
-4. Initialize submodules recursively again.
-
-If another worktree holds `main`, reset the current branch as described above. If submodule initialization fails on a stale, nonempty, uninitialized submodule directory, inspect that directory first. Remove it only under the same explicit authorization, then retry.
-
-Proof: the status shows a clean tree on the branch, the diff check reports no whitespace errors, and the local HEAD equals the remote main tip read live from origin.
+Only with explicit user consent to destroy local changes. The reference lists the steps, the proof, and the stale-submodule handling: `references/local-daemon-operations.md`. Why: the reset is destructive and rarely needed.
 
 ## Build and run
 
@@ -59,15 +50,7 @@ Proof: the status shows a clean tree on the branch, the diff check reports no wh
 
 ## Upgrade the local daemon
 
-On macOS, launchd keeps the daemon running with `KeepAlive`. Discover the job label and the installed binary path by inspection: list launchd jobs filtered for Centy, and resolve the binary on the command search path. Do not assume either value.
-
-1. Back up the installed binary beside itself under a distinct name, before replacing anything. Why: rollback.
-2. Copy the release build beside the installed binary under a temporary name, then rename it over the installed path. Why: the rename replaces the file atomically, so a running process never reads a half-written binary.
-3. Terminate the old daemon process, found by its PID from the launchd job state. Do not start a new one yourself. Why: the service manager restarts the daemon from the replaced binary.
-4. Prove the upgrade with a real, session-less tool call to the MCP endpoint on the port the daemon was started with (default `50052`). No session header and no initialize handshake are needed. Call the daemon-info tool, which reports the version, and expect the new version. An old version means the old process still runs or launchd did not restart the job.
-5. Prove the fix by behaviour as well. Builds between releases often report the same version string, so the version alone does not show which build runs. Call the RPC that the change fixed and expect the fixed result.
-
-Several agent sessions may share one machine and upgrade the same daemon. Before the swap, confirm the installed binary is still the one you inspected (same size or checksum). If it changed, another session installed a build: find out what it holds before you replace it. Why: an unguarded swap silently reverts another session's newer build, or theirs reverts yours. After any restart you did not cause, re-check the fixed behaviour, because the live build may not contain it.
+On macOS, launchd keeps the daemon running. The reference gives the launchd upgrade steps, the backup and rollback rule, and the shared-machine checks: `references/local-daemon-operations.md`. Why: the same procedure serves every upgrade, including release proof.
 
 ## Ship a change
 
@@ -81,6 +64,14 @@ Each gate below failed a pull request at least once because it was skipped local
 
 Proof: the local clippy run with the CI flags, the full test suite and the changeset check all pass before you push.
 
+
+## Cut a release
+
+- **Prepare.** A release bumps the daemon crate version and its lock entry, and adds one hand-written changeset. The changeset lists every change since the last tag. Lead it with any behaviour change, such as an input that was accepted before and is now rejected. Why: callers break silently otherwise.
+- **Choose the version on purpose.** The project is pre-1.0. A new RPC, a new built-in type or a behaviour change makes a minor bump. Fixes alone make a patch bump. Why: a minor bump warns callers to check their use.
+- **Release only on green.** Main CI must be green on the exact commit, including the MCP smoke step, and the release pull request's own checks must be green. Freeze main against other sessions that merge there. Why: code that lands between the green check and the tag ships untested. If it lands anyway, it ships: add it to the notes. Never claim a release excludes code already on main.
+- **Tag the squash merge commit.** Confirm that commit is on main before tagging. Why: the release workflow builds every platform package and the checksums from that tag.
+- **Prove the published artefact,** not the pull request build. Check the checksum. Make a session-less tool call and expect the new version. Hold a port and expect a clear error. Send SIGTERM and expect a clean exit with status 0. Then upgrade the local launchd daemon the same way, and delete the backup only after that upgrade is verified. Why: the pull request build can differ from the published one.
 
 ## Daemon-written files and project config
 
