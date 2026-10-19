@@ -1,7 +1,7 @@
 ---
 name: centy-daemon-local-development
 description: "Use when working on a local Centy daemon checkout."
-version: 1.3.0
+version: 1.4.0
 author: Hermes Agent
 license: MIT
 metadata:
@@ -76,6 +76,12 @@ Each gate below failed a pull request at least once because it was skipped local
 - Prove a bug-fix test: run it against the base code with only the source change reverted, see it fail, then restore the fix. Why: a test that passes on both sides guards nothing.
 
 Proof: the local clippy run with the CI flags, the full test suite and the changeset check all pass before you push.
+
+
+## Daemon-written files and project config
+
+- The managed `.centy/.gitignore` ignores only files with a `.local.` infix. Users commit `.centy`. Why: any other daemon-written runtime file, such as a log or history file, leaks into their git status. Give every such file the `.local.` infix, and check a fresh project's git status after the daemon runs.
+- Built-in link types must exist inside the daemon. Why: a client that silently writes project config to declare them pollutes committed files and drifts per client. Fix the missing type in the daemon, not in the client.
 
 ## Pitfalls
 
