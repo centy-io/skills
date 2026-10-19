@@ -1,7 +1,7 @@
 ---
 name: centy-daemon-local-development
 description: "Use when working on a local Centy daemon checkout."
-version: 1.2.0
+version: 1.3.0
 author: Hermes Agent
 license: MIT
 metadata:
@@ -17,6 +17,7 @@ Use for a local checkout of the Centy daemon, its Rust workspace, and its submod
 ## When to Use
 
 - Cloning, repairing, resetting, building, or launching the Centy daemon locally.
+- Preparing a daemon change for a pull request.
 - Diagnosing a mismatch between an existing daemon checkout and its runtime state.
 
 ## Repository model
@@ -64,6 +65,17 @@ On macOS, launchd keeps the daemon running with `KeepAlive`. Discover the job la
 2. Copy the release build beside the installed binary under a temporary name, then rename it over the installed path. Why: the rename replaces the file atomically, so a running process never reads a half-written binary.
 3. Terminate the old daemon process, found by its PID from the launchd job state. Do not start a new one yourself. Why: the service manager restarts the daemon from the replaced binary.
 4. Prove the upgrade with a real, session-less tool call to the MCP endpoint on the port the daemon was started with (default `50052`). No session header and no initialize handshake are needed. Call the daemon-info tool, which reports the version, and expect the new version. An old version means the old process still runs or launchd did not restart the job.
+
+## Ship a change
+
+Each gate below failed a pull request at least once because it was skipped locally.
+
+- Every new worktree needs its submodules. Initialize `proto` before the first build. Why: a worktree starts with empty submodule directories, and the build script fails on the missing proto files.
+- Run clippy exactly as CI does: all targets, warnings denied. Read the flags from the build workflow, not from memory. Why: a plain clippy run skips test targets and passes code that CI rejects.
+- Add a changeset file to every pull request. A change with no release note, such as tests or CI, gets an empty changeset. Copy the shape of an existing empty one in the changeset folder. Why: the changeset check fails any pull request without one.
+- Prove a bug-fix test: run it against the base code with only the source change reverted, see it fail, then restore the fix. Why: a test that passes on both sides guards nothing.
+
+Proof: the local clippy run with the CI flags, the full test suite and the changeset check all pass before you push.
 
 ## Pitfalls
 
